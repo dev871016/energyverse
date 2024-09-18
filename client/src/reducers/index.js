@@ -1,6 +1,6 @@
 import { combineReducers } from "redux";
-import project from "./project";
+import wallet from "./wallet";
 
 export default combineReducers({
-  project,
+  wallet,
 });
