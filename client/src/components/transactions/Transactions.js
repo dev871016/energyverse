@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from "react";
-import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
-import { Container } from "@mui/material";
-import LocationOnIcon from "@mui/icons-material/LocationOn";
-import CircularProgress from "@mui/material/CircularProgress";
+import { Box, Container } from "@mui/material";
 import { ApolloClient, InMemoryCache, gql } from "@apollo/client";
+import Loading from "../utils/Loading";
 
-const APIURL = "https://api.studio.thegraph.com/query/89145/aev/version/latest";
+const APIURL =
+  "https://api.studio.thegraph.com/query/89356/subgraph1/version/latest";
 
 const transactionsQuery = `
   query MyQuery {
@@ -69,12 +67,12 @@ const Transactions = () => {
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            gap: "30px",
+            gap: "10px",
             padding: "100px",
           }}
         >
           {isLoading ? (
-            <CircularProgress />
+            <Loading />
           ) : (
             transactions.map((transaction, index) => (
               <Container
@@ -84,12 +82,12 @@ const Transactions = () => {
                   borderWidth: "1px",
                   borderColor: "white",
                   borderStyle: "solid",
-                  fontSize: "20px",
+                  fontSize: "10px",
                 }}
               >
-                <div>from : {transaction.from}</div>
-                <div>to : {transaction.to}</div>
-                <div>amount : {transaction.value}</div>
+                <span>from : {transaction.from}</span>
+                <span>to : {transaction.to}</span>
+                <span>amount : {transaction.value}</span>
                 <div>blockNumber : {transaction.blockNumber}</div>
                 <div>transactionHash : {transaction.transactionHash}</div>
                 <div>

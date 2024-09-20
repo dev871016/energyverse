@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { connect } from "react-redux";
 import PropTypes from "prop-types";
 import { ApolloClient, InMemoryCache, gql } from "@apollo/client";
+import { Web3 } from "web3";
 import {
   Alert,
   Box,
@@ -15,48 +16,39 @@ import {
   Snackbar,
   TextField,
 } from "@mui/material";
-import { Web3 } from "web3";
-import ProjectFactory from "../abi/ProjectFactory.json";
-import Project from "../abi/Project.json";
+import TokenVesting from "../abi/TokenVesting.json";
 import AEV from "../abi/AEV.json";
-import ProjectItem from "./ProjectItem";
+import VestingItem from "./VestingItem";
 import Loading from "../utils/Loading";
 
 const adminAddress = "0x467b69d4b71ccf5decc44b8e6c09eb0b2e247f58";
-const ProjectFactoryContractAddress =
-  "0xA08aC1f3F028655aa2d7B74730c172e0fbd3FcC0";
 const AEVContractAddress = "0x0d227d43Db18361c5c67f5a217673baD86787E67";
 const rpc = "https://sepolia.infura.io/v3/d8d9d860d0c94b7f88c73b371afee338";
 const web3 = new Web3(new Web3.providers.HttpProvider(rpc));
 const APIURL =
-  "https://api.studio.thegraph.com/query/89356/subgraph2/version/latest";
+  "https://api.studio.thegraph.com/query/89356/subgraph1/version/latest";
 const projectsQuery = `
   query MyQuery {
-    createProjects(orderBy: blockNumber, first: 10) {
-      project
-      name
-      location
-      description
-      owner
-      totalBalance
+    createTokenVestings {
+      tokenVesting
     }
   }
 `;
 
-const Projects = ({ wallet: { wallet } }) => {
-  const [owner, setOwner] = useState("");
+const Vesting = ({ wallet: { wallet } }) => {
   const [name, setName] = useState("");
-  const [location, setLocation] = useState("");
-  const [description, setDescription] = useState("");
-  const [totalBalance, setTotalBalance] = useState(0);
+  const [beneficiary, setBeneficiary] = useState("");
+  const [start, setStart] = useState(0);
+  const [cliff, setCliff] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [slicePeriodSeconds, setSlicePeriodSeconds] = useState(0);
   const [amount, setAmount] = useState(0);
-  const [availableBalance, setAvailableBalance] = useState(0);
-  const [projects, setProjects] = useState([]);
-  const [currentProject, setCurrentProject] = useState("");
+  const [vesting, setVesting] = useState([]);
+  const [currentVesting, setCurrentVesting] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
-  const [isStakeDialogOpen, setIsStakeDialogOpen] = React.useState(false);
-  const [isPayDialogOpen, setIsPayDialogOpen] = React.useState(false);
+  const [isCreateScheduleDialogOpen, setIsCreateScheduleDialogOpen] =
+    React.useState(false);
   const [isInfoAlertOpen, setIsInfoAlertOpen] = React.useState(false);
   const [isSuccessAlertOpen, setIsSuccessAlertOpen] = React.useState(false);
 
@@ -80,29 +72,19 @@ const Projects = ({ wallet: { wallet } }) => {
     setIsCreateDialogOpen(false);
   };
 
-  const handleStakeDialogClose = () => {
-    setIsStakeDialogOpen(false);
-  };
-
-  const handlePayDialogClose = () => {
-    setIsPayDialogOpen(false);
+  const handleCreateScheduleDialogClose = () => {
+    setIsCreateScheduleDialogOpen(false);
   };
 
   const handleCreateDialogOK = async () => {
-    const contractABI = ProjectFactory.abi;
+    const contractABI = AEV.abi;
     const web3Instance = new Web3(window.ethereum);
     const contract = new web3Instance.eth.Contract(
       contractABI,
-      ProjectFactoryContractAddress
+      AEVContractAddress
     );
     contract.methods
-      .createProject(
-        owner,
-        name,
-        location,
-        description,
-        10 ** 18 * totalBalance
-      )
+      .createTokenVesting(name, 10 ** 18 * amount)
       .send({
         from: wallet,
       })
@@ -113,17 +95,28 @@ const Projects = ({ wallet: { wallet } }) => {
     setIsCreateDialogOpen(false);
   };
 
-  const handleStakeDialogOK = async () => {
-    if (!amount) return;
-    if (amount < 0) return;
-    const contractABI = AEV.abi;
+  const handleCreateScheduleDialogOK = async () => {
+    if (start <= 0 || !start) return;
+    if (cliff <= 0 || !cliff) return;
+    if (duration <= 0 || !duration) return;
+    if (slicePeriodSeconds <= 0 || !slicePeriodSeconds) return;
+    if (amount <= 0 || !amount) return;
+
+    const contractABI = TokenVesting.abi;
     const web3Instance = new Web3(window.ethereum);
-    const contract = new web3Instance.eth.Contract(
-      contractABI,
-      AEVContractAddress
-    );
+    const contract = new web3Instance.eth.Contract(contractABI, currentVesting);
+    var blockInfo = await web3.eth.getBlock();
+    console.log(blockInfo);
     contract.methods
-      .stakeToProject(currentProject, 10 ** 18 * amount)
+      .createVestingSchedule(
+        beneficiary,
+        Number(start) + Number(blockInfo.timestamp),
+        cliff,
+        duration,
+        slicePeriodSeconds,
+        false,
+        10 ** 18 * amount
+      )
       .send({
         from: wallet,
       })
@@ -131,20 +124,16 @@ const Projects = ({ wallet: { wallet } }) => {
         setIsSuccessAlertOpen(true);
       })
       .catch((error) => console.log(error));
-    setIsStakeDialogOpen(false);
+    setIsCreateScheduleDialogOpen(false);
   };
 
-  const handlePayDialogOK = async () => {
-    if (!amount) return;
-    if (amount < 0) return;
-    const contractABI = AEV.abi;
+  const release = async (vesting, releaseScheduleId, releaseAmount) => {
+    if (!wallet) return;
+    const contractABI = TokenVesting.abi;
     const web3Instance = new Web3(window.ethereum);
-    const contract = new web3Instance.eth.Contract(
-      contractABI,
-      AEVContractAddress
-    );
+    const contract = new web3Instance.eth.Contract(contractABI, vesting);
     contract.methods
-      .payEnergy(currentProject, 10 ** 18 * amount)
+      .release(releaseScheduleId, releaseAmount)
       .send({
         from: wallet,
       })
@@ -152,10 +141,9 @@ const Projects = ({ wallet: { wallet } }) => {
         setIsSuccessAlertOpen(true);
       })
       .catch((error) => console.log(error));
-    setIsPayDialogOpen(false);
   };
 
-  const getProjects = async () => {
+  const getVesting = async () => {
     const client = new ApolloClient({
       uri: APIURL,
       cache: new InMemoryCache(),
@@ -166,7 +154,7 @@ const Projects = ({ wallet: { wallet } }) => {
         query: gql(projectsQuery),
       })
       .then((data) => {
-        setProjects(data.data.createProjects);
+        setVesting(data.data.createTokenVestings);
         setIsLoading(false);
       })
       .catch((err) => {
@@ -174,22 +162,17 @@ const Projects = ({ wallet: { wallet } }) => {
       });
   };
 
-  const stakeToProject = async (projectAddress) => {
+  const createVestingSchedule = async (vesting) => {
     if (wallet !== "") {
       setAmount(0);
-      setCurrentProject(projectAddress);
-      const contractAddress = projectAddress;
-      const contractABI = Project.abi;
-      const contract = new web3.eth.Contract(contractABI, contractAddress);
-      const result = await contract.methods.balances(projectAddress).call();
-      setAvailableBalance(Number(result));
-      setIsStakeDialogOpen(true);
+      setCurrentVesting(vesting);
+      setIsCreateScheduleDialogOpen(true);
     } else {
       setIsInfoAlertOpen(true);
     }
   };
 
-  const createProject = () => {
+  const createVesting = () => {
     if (wallet !== "") {
       setIsCreateDialogOpen(true);
     } else {
@@ -197,39 +180,9 @@ const Projects = ({ wallet: { wallet } }) => {
     }
   };
 
-  const payForEnergy = async (projectAddress) => {
-    if (wallet !== "") {
-      setAmount(0);
-      setCurrentProject(projectAddress);
-      setIsPayDialogOpen(true);
-    } else {
-      setIsInfoAlertOpen(true);
-    }
-  };
-
-  const distributeProfit = async (projectAddress) => {
-    if (!wallet) return;
-    const contractAddress = projectAddress;
-    const contractABI = Project.abi;
-    const web3Instance = new Web3(window.ethereum);
-    const contract = new web3Instance.eth.Contract(
-      contractABI,
-      contractAddress
-    );
-    contract.methods
-      .distributeProfit()
-      .send({
-        from: wallet,
-      })
-      .then((result) => {
-        setIsSuccessAlertOpen(true);
-      })
-      .catch((error) => console.log(error));
-  };
-
   useEffect(() => {
-    getProjects();
-    const intervalId = setInterval(getProjects, 5000);
+    getVesting();
+    const intervalId = setInterval(getVesting, 5000);
 
     return () => {
       clearInterval(intervalId);
@@ -249,7 +202,7 @@ const Projects = ({ wallet: { wallet } }) => {
       }}
     >
       {wallet === adminAddress ? (
-        <Button onClick={() => createProject()}>Create Project</Button>
+        <Button onClick={() => createVesting()}>Create Vesting</Button>
       ) : null}
       {
         <Container
@@ -266,14 +219,13 @@ const Projects = ({ wallet: { wallet } }) => {
           {isLoading ? (
             <Loading />
           ) : (
-            projects.map((project, index) => (
-              <ProjectItem
+            vesting.map((tokenVesting, index) => (
+              <VestingItem
                 key={index}
-                project={project}
+                vesting={tokenVesting.tokenVesting}
                 wallet={wallet}
-                stakeToProject={stakeToProject}
-                payForEnergy={payForEnergy}
-                distributeProfit={distributeProfit}
+                createVestingSchedule={createVestingSchedule}
+                release={release}
               />
             ))
           )}
@@ -309,33 +261,107 @@ const Projects = ({ wallet: { wallet } }) => {
           Transaction success!
         </Alert>
       </Snackbar>
-      <Dialog open={isCreateDialogOpen} onClose={handleCreateDialogClose}>
-        <DialogTitle>Create a new Project</DialogTitle>
+      <Dialog
+        open={isCreateScheduleDialogOpen}
+        onClose={handleCreateScheduleDialogClose}
+      >
+        <DialogTitle>Create a new Vesting Schedule</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure to create a new project?
+            Are you sure to create a new vesting schedule?
           </DialogContentText>
-          <div>currentProject : {currentProject}</div>
-          <div>availableBalance : {availableBalance / 10 ** 18}</div>
           <TextField
             autoFocus
             required
             margin="dense"
-            id="owner"
-            name="owner"
-            label="Owner Address"
+            id="beneficiary"
+            name="beneficiary"
+            label="Beneficiary Address"
             type="string"
-            value={owner}
-            onChange={(e) => setOwner(e.target.value)}
+            value={beneficiary}
+            onChange={(e) => setBeneficiary(e.target.value)}
             fullWidth
             variant="standard"
           />
           <TextField
             required
             margin="dense"
+            id="start"
+            name="start"
+            label="Start"
+            type="number"
+            value={start}
+            onChange={(e) => setStart(e.target.value)}
+            fullWidth
+            variant="standard"
+          />
+          <TextField
+            required
+            margin="dense"
+            id="cliff"
+            name="cliff"
+            label="Cliff"
+            type="number"
+            value={cliff}
+            onChange={(e) => setCliff(e.target.value)}
+            fullWidth
+            variant="standard"
+          />
+          <TextField
+            required
+            margin="dense"
+            id="duration"
+            name="duration"
+            label="Duration"
+            type="number"
+            value={duration}
+            onChange={(e) => setDuration(e.target.value)}
+            fullWidth
+            variant="standard"
+          />
+          <TextField
+            required
+            margin="dense"
+            id="slicePeriodSeconds"
+            name="slicePeriodSeconds"
+            label="Slice Period Seconds"
+            type="number"
+            value={slicePeriodSeconds}
+            onChange={(e) => setSlicePeriodSeconds(e.target.value)}
+            fullWidth
+            variant="standard"
+          />
+          <TextField
+            required
+            margin="dense"
+            id="amount"
+            name="amount"
+            label="Amount"
+            type="number"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            fullWidth
+            variant="standard"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCreateScheduleDialogOK}>OK</Button>
+          <Button onClick={handleCreateScheduleDialogClose}>Cancel</Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={isCreateDialogOpen} onClose={handleCreateDialogClose}>
+        <DialogTitle>Create a new Vesting</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure to create a new vesting?
+          </DialogContentText>
+          <TextField
+            autoFocus
+            required
+            margin="dense"
             id="name"
             name="name"
-            label="Project Name"
+            label="Vesting Name"
             type="string"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -345,36 +371,12 @@ const Projects = ({ wallet: { wallet } }) => {
           <TextField
             required
             margin="dense"
-            id="location"
-            name="location"
-            label="Location"
-            type="string"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            fullWidth
-            variant="standard"
-          />
-          <TextField
-            required
-            margin="dense"
-            id="description"
-            name="description"
-            label="Description"
-            type="string"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            fullWidth
-            variant="standard"
-          />
-          <TextField
-            required
-            margin="dense"
-            id="totalBalance"
-            name="totalBalance"
-            label="Total Balance"
+            id="amount"
+            name="amount"
+            label="Vesting Amount"
             type="number"
-            value={totalBalance}
-            onChange={(e) => setTotalBalance(e.target.value)}
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
             fullWidth
             variant="standard"
           />
@@ -384,62 +386,11 @@ const Projects = ({ wallet: { wallet } }) => {
           <Button onClick={handleCreateDialogClose}>Cancel</Button>
         </DialogActions>
       </Dialog>
-      <Dialog open={isStakeDialogOpen} onClose={handleStakeDialogClose}>
-        <DialogTitle>Stake to Project</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Are you sure to stake to this project?
-          </DialogContentText>
-          <div>currentProject : {currentProject}</div>
-          <div>availableBalance : {availableBalance / 10 ** 18}</div>
-          <TextField
-            autoFocus
-            required
-            margin="dense"
-            id="amount"
-            name="amount"
-            label="Amount to stake"
-            type="number"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            fullWidth
-            variant="standard"
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleStakeDialogOK}>OK</Button>
-          <Button onClick={handleStakeDialogClose}>Cancel</Button>
-        </DialogActions>
-      </Dialog>
-      <Dialog open={isPayDialogOpen} onClose={handlePayDialogClose}>
-        <DialogTitle>Pay for Energy</DialogTitle>
-        <DialogContent>
-          <DialogContentText>Are you sure to pay for energy?</DialogContentText>
-          <div>currentProject : {currentProject}</div>
-          <TextField
-            autoFocus
-            required
-            margin="dense"
-            id="amount"
-            name="amount"
-            label="Amount to pay"
-            type="number"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            fullWidth
-            variant="standard"
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handlePayDialogOK}>OK</Button>
-          <Button onClick={handlePayDialogClose}>Cancel</Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 };
 
-Projects.propTypes = {
+Vesting.propTypes = {
   wallet: PropTypes.object.isRequired,
 };
 
@@ -447,4 +398,4 @@ const mapStateToProps = (state) => ({
   wallet: state.wallet,
 });
 
-export default connect(mapStateToProps)(Projects);
+export default connect(mapStateToProps)(Vesting);

@@ -4,7 +4,9 @@ import Sidebar from "./components/layout/Sidebar";
 import Landing from "./components/layout/Landing";
 import Transactions from "./components/transactions/Transactions";
 import Projects from "./components/projects/Projects";
+import Vesting from "./components/vesting/Vesting";
 import MyProjects from "./components/myprojects/MyProjects";
+import OwnProjects from "./components/ownprojects/OwnProjects";
 import Swap from "./components/swap/Swap";
 
 // Redux
@@ -23,7 +25,9 @@ const App = () => {
             <Route exact path="/" element={<Landing />} />
             <Route exact path="/transactions" element={<Transactions />} />
             <Route exact path="/projects" element={<Projects />} />
+            <Route exact path="/vesting" element={<Vesting />} />
             <Route exact path="/myprojects" element={<MyProjects />} />
+            <Route exact path="/ownprojects" element={<OwnProjects />} />
             <Route exact path="/swap" element={<Swap />} />
           </Routes>
         </Fragment>

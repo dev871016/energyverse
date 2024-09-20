@@ -23,6 +23,8 @@ import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import SaveAltIcon from "@mui/icons-material/SaveAlt";
 import { setWallet } from "../../actions/wallet";
 
+const adminAddress = "0x467b69d4b71ccf5decc44b8e6c09eb0b2e247f58";
+
 const shortenAddress = (address) => {
   if (!address) return "Connect Wallet";
   return `${address.substring(0, 5)}...${address.substring(
@@ -101,8 +103,16 @@ const Sidebar = ({ setWallet, wallet: { wallet } }) => {
     navigate("/projects");
   };
 
+  const moveToVesting = () => {
+    navigate("/vesting");
+  };
+
   const moveToMyProjects = () => {
     navigate("/myprojects");
+  };
+
+  const moveToOwnProjects = () => {
+    navigate("/ownprojects");
   };
 
   const moveToTransactions = () => {
@@ -170,13 +180,33 @@ const Sidebar = ({ setWallet, wallet: { wallet } }) => {
               <ListItemText primary="Projects" />
             </ListItemButton>
           </ListItem>
-          {wallet ? (
+          {wallet && wallet === adminAddress ? (
+            <ListItem disablePadding>
+              <ListItemButton onClick={moveToVesting}>
+                <ListItemIcon>
+                  <DvrIcon sx={{ color: "white" }} />
+                </ListItemIcon>
+                <ListItemText primary="Vesting" />
+              </ListItemButton>
+            </ListItem>
+          ) : null}
+          {wallet && wallet !== adminAddress ? (
             <ListItem disablePadding>
               <ListItemButton onClick={moveToMyProjects}>
                 <ListItemIcon>
                   <DvrIcon sx={{ color: "white" }} />
                 </ListItemIcon>
                 <ListItemText primary="MyProjects" />
+              </ListItemButton>
+            </ListItem>
+          ) : null}
+          {wallet && wallet !== adminAddress ? (
+            <ListItem disablePadding>
+              <ListItemButton onClick={moveToOwnProjects}>
+                <ListItemIcon>
+                  <DvrIcon sx={{ color: "white" }} />
+                </ListItemIcon>
+                <ListItemText primary="OwnProjects" />
               </ListItemButton>
             </ListItem>
           ) : null}

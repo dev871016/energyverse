@@ -5,27 +5,40 @@ import PropTypes from "prop-types";
 import { ApolloClient, InMemoryCache, gql } from "@apollo/client";
 import { Web3 } from "web3";
 import { Alert, Box, Container, Snackbar } from "@mui/material";
+import Project from "../abi/Project.json";
 import ProjectItem from "./ProjectItem";
 import Loading from "../utils/Loading";
-import Project from "../abi/Project.json";
 
 const APIURL =
-  "https://api.studio.thegraph.com/query/89356/subgraph1/version/latest";
-
+  "https://api.studio.thegraph.com/query/89356/subgraph2/version/latest";
 const projectsQuery = `
   query MyQuery {
-    stakeToProjects(where: {staker: "var1"}) {
+    createProjects(where: {owner: "var1"}) {
       project
+      name
+      location
+      description
+      owner
+      totalBalance
     }
   }
 `;
 
-const MyProjects = ({ wallet: { wallet } }) => {
+const OwnProjects = ({ wallet: { wallet } }) => {
   const navigate = useNavigate();
 
   const [projects, setProjects] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSuccessAlertOpen, setIsSuccessAlertOpen] = useState(false);
+  const [isInfoAlertOpen, setIsInfoAlertOpen] = React.useState(false);
+  const [isSuccessAlertOpen, setIsSuccessAlertOpen] = React.useState(false);
+
+  const handleInfoAlertClose = (event, reason) => {
+    if (reason === "clickaway") {
+      return;
+    }
+
+    setIsInfoAlertOpen(false);
+  };
 
   const handleSuccessAlertClose = (event, reason) => {
     if (reason === "clickaway") {
@@ -48,10 +61,7 @@ const MyProjects = ({ wallet: { wallet } }) => {
         query: gql(projectsQuery.replace("var1", wallet)),
       })
       .then((data) => {
-        const temp = data.data.stakeToProjects.map((value) => value.project);
-        setProjects(
-          temp.filter((value, index) => temp.indexOf(value) === index)
-        );
+        setProjects(data.data.createProjects);
         setIsLoading(false);
       })
       .catch((err) => {
@@ -132,6 +142,21 @@ const MyProjects = ({ wallet: { wallet } }) => {
       }
       <Snackbar
         anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        open={isInfoAlertOpen}
+        autoHideDuration={3000}
+        onClose={handleInfoAlertClose}
+      >
+        <Alert
+          onClose={handleInfoAlertClose}
+          severity="info"
+          variant="filled"
+          sx={{ width: "100%" }}
+        >
+          Please connect your wallet!
+        </Alert>
+      </Snackbar>
+      <Snackbar
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
         open={isSuccessAlertOpen}
         autoHideDuration={3000}
         onClose={handleSuccessAlertClose}
@@ -149,7 +174,7 @@ const MyProjects = ({ wallet: { wallet } }) => {
   );
 };
 
-MyProjects.propTypes = {
+OwnProjects.propTypes = {
   wallet: PropTypes.object.isRequired,
 };
 
@@ -157,4 +182,4 @@ const mapStateToProps = (state) => ({
   wallet: state.wallet,
 });
 
-export default connect(mapStateToProps)(MyProjects);
+export default connect(mapStateToProps)(OwnProjects);
