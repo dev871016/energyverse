@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { connect } from "react-redux";
 import PropTypes from "prop-types";
 import { ApolloClient, InMemoryCache, gql } from "@apollo/client";
+import { Web3 } from "web3";
 import {
   Alert,
   Box,
@@ -15,12 +16,13 @@ import {
   Snackbar,
   TextField,
 } from "@mui/material";
-import { Web3 } from "web3";
 import ProjectFactory from "../abi/ProjectFactory.json";
 import Project from "../abi/Project.json";
 import AEV from "../abi/AEV.json";
 import ProjectItem from "./ProjectItem";
-import Loading from "../utils/Loading";
+import Loading from "../common/Loading";
+import { shortenAddress } from "../utils/utils";
+import env from "../utils/env";
 
 const adminAddress = "0x467b69d4b71ccf5decc44b8e6c09eb0b2e247f58";
 const ProjectFactoryContractAddress =
@@ -239,46 +241,67 @@ const Projects = ({ wallet: { wallet } }) => {
   return (
     <Box
       sx={{
-        display: "inline-block",
-        position: "absolute",
         width: "calc(100% - max(12%, 200px))",
+        backgroundColor: env.bgColor,
         height: "100vh",
-        backgroundColor: "#0A1223",
         color: "white",
+        boxSizing: "border-box",
+        padding: "30px",
         overflow: "auto",
       }}
     >
-      {wallet === adminAddress ? (
-        <Button onClick={() => createProject()}>Create Project</Button>
-      ) : null}
-      {
-        <Container
+      {isLoading ? (
+        <Box
           sx={{
-            height: "100%",
+            height: "100vh",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Loading />
+        </Box>
+      ) : (
+        <Box
+          sx={{
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            justifyContent: "center",
-            gap: "30px",
-            padding: "100px",
+            gap: "20px",
           }}
         >
-          {isLoading ? (
-            <Loading />
-          ) : (
-            projects.map((project, index) => (
-              <ProjectItem
-                key={index}
-                project={project}
-                wallet={wallet}
-                stakeToProject={stakeToProject}
-                payForEnergy={payForEnergy}
-                distributeProfit={distributeProfit}
-              />
-            ))
-          )}
-        </Container>
-      }
+          {wallet === adminAddress ? (
+            <Container
+              sx={{
+                width: "90%",
+                display: "flex",
+                justifyContent: "flex-start",
+              }}
+            >
+              <Button
+                sx={{
+                  backgroundColor: "#1F79F3",
+                  color: "white",
+                  padding: "5px 12px",
+                }}
+                onClick={() => createProject()}
+              >
+                Create Project
+              </Button>
+            </Container>
+          ) : null}
+          {projects.map((project, index) => (
+            <ProjectItem
+              key={index}
+              project={project}
+              wallet={wallet}
+              stakeToProject={stakeToProject}
+              payForEnergy={payForEnergy}
+              distributeProfit={distributeProfit}
+            />
+          ))}
+        </Box>
+      )}
       <Snackbar
         anchorOrigin={{ vertical: "top", horizontal: "right" }}
         open={isInfoAlertOpen}
@@ -315,8 +338,6 @@ const Projects = ({ wallet: { wallet } }) => {
           <DialogContentText>
             Are you sure to create a new project?
           </DialogContentText>
-          <div>currentProject : {currentProject}</div>
-          <div>availableBalance : {availableBalance / 10 ** 18}</div>
           <TextField
             autoFocus
             required
@@ -390,8 +411,8 @@ const Projects = ({ wallet: { wallet } }) => {
           <DialogContentText>
             Are you sure to stake to this project?
           </DialogContentText>
-          <div>currentProject : {currentProject}</div>
-          <div>availableBalance : {availableBalance / 10 ** 18}</div>
+          <div>Current Project : {shortenAddress(currentProject)}</div>
+          <div>Available Balance : {availableBalance / 10 ** 18} AEV</div>
           <TextField
             autoFocus
             required
@@ -415,7 +436,7 @@ const Projects = ({ wallet: { wallet } }) => {
         <DialogTitle>Pay for Energy</DialogTitle>
         <DialogContent>
           <DialogContentText>Are you sure to pay for energy?</DialogContentText>
-          <div>currentProject : {currentProject}</div>
+          <div>Current Project : {shortenAddress(currentProject)}</div>
           <TextField
             autoFocus
             required

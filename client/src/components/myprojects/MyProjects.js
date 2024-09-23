@@ -4,10 +4,22 @@ import { useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
 import { ApolloClient, InMemoryCache, gql } from "@apollo/client";
 import { Web3 } from "web3";
-import { Alert, Box, Container, Snackbar } from "@mui/material";
+import { styled } from "@mui/material/styles";
+import {
+  Alert,
+  Box,
+  Container,
+  Snackbar,
+  Table,
+  TableBody,
+  TableHead,
+  TableRow,
+} from "@mui/material";
+import TableCell, { tableCellClasses } from "@mui/material/TableCell";
 import ProjectItem from "./ProjectItem";
-import Loading from "../utils/Loading";
+import Loading from "../common/Loading";
 import Project from "../abi/Project.json";
+import env from "../utils/env";
 
 const APIURL =
   "https://api.studio.thegraph.com/query/89356/subgraph1/version/latest";
@@ -19,6 +31,34 @@ const projectsQuery = `
     }
   }
 `;
+
+const StyledTableCell = styled(TableCell)(({ theme }) => ({
+  [`&.${tableCellClasses.head}`]: {
+    backgroundColor: "#0E2F67",
+    color: theme.palette.common.white,
+    fontSize: 21,
+  },
+  [`&.${tableCellClasses.body}`]: {
+    color: theme.palette.common.white,
+    fontSize: 20,
+  },
+  "&:first-child": {
+    borderRadius: "30px 0px 0px 30px",
+  },
+  "&:last-child": {
+    borderRadius: "0px 30px 30px 0px",
+  },
+}));
+
+const StyledTableRow = styled(TableRow)(({ theme }) => ({
+  "&:nth-of-type(odd)": {
+    backgroundColor: theme.palette.action.hover,
+  },
+
+  "&:last-child td, &:last-child th": {
+    border: 0,
+  },
+}));
 
 const MyProjects = ({ wallet: { wallet } }) => {
   const navigate = useNavigate();
@@ -95,12 +135,12 @@ const MyProjects = ({ wallet: { wallet } }) => {
   return (
     <Box
       sx={{
-        display: "inline-block",
-        position: "absolute",
         width: "calc(100% - max(12%, 200px))",
+        backgroundColor: env.bgColor,
         height: "100vh",
-        backgroundColor: "#0A1223",
         color: "white",
+        boxSizing: "border-box",
+        padding: "30px",
         overflow: "auto",
       }}
     >
@@ -119,14 +159,42 @@ const MyProjects = ({ wallet: { wallet } }) => {
           {isLoading ? (
             <Loading />
           ) : (
-            projects.map((project, index) => (
-              <ProjectItem
-                key={index}
-                project={project}
-                wallet={wallet}
-                withdrawReward={withdrawReward}
-              />
-            ))
+            <Container
+              sx={{
+                backgroundColor: "#0A224F",
+                borderRadius: "30px",
+                borderColor: "#3394C4",
+                borderStyle: "solid",
+                padding: "10px",
+                paddingTop: "30px",
+              }}
+            >
+              <Table
+                sx={{
+                  color: "white",
+                }}
+                aria-label="customized table"
+              >
+                <TableHead>
+                  <StyledTableRow>
+                    <StyledTableCell>Project</StyledTableCell>
+                    <StyledTableCell>Staked Amount</StyledTableCell>
+                    <StyledTableCell>Reward to Withdraw</StyledTableCell>
+                    <StyledTableCell>Withdraw Reward</StyledTableCell>
+                  </StyledTableRow>
+                </TableHead>
+                <TableBody>
+                  {projects.map((project, index) => (
+                    <ProjectItem
+                      key={index}
+                      project={project}
+                      wallet={wallet}
+                      withdrawReward={withdrawReward}
+                    />
+                  ))}
+                </TableBody>
+              </Table>
+            </Container>
           )}
         </Container>
       }

@@ -20,17 +20,19 @@ import {
 import HomeIcon from "@mui/icons-material/Home";
 import DvrIcon from "@mui/icons-material/Dvr";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
-import SaveAltIcon from "@mui/icons-material/SaveAlt";
+import SendIcon from "@mui/icons-material/Send";
+import TokenIcon from "@mui/icons-material/Token";
+import CreditScoreIcon from "@mui/icons-material/CreditScore";
+import FolderSharedIcon from "@mui/icons-material/FolderShared";
 import { setWallet } from "../../actions/wallet";
+import { shortenAddress } from "../utils/utils";
+import env from "../utils/env";
 
 const adminAddress = "0x467b69d4b71ccf5decc44b8e6c09eb0b2e247f58";
 
-const shortenAddress = (address) => {
+const buttonText = (address) => {
   if (!address) return "Connect Wallet";
-  return `${address.substring(0, 5)}...${address.substring(
-    address.length - 5,
-    address.length
-  )}`;
+  return shortenAddress(address);
 };
 
 const Sidebar = ({ setWallet, wallet: { wallet } }) => {
@@ -137,10 +139,9 @@ const Sidebar = ({ setWallet, wallet: { wallet } }) => {
   return (
     <Box
       sx={{
-        display: "inline-block",
         width: "calc(max(12%, 200px))",
         height: "100vh",
-        backgroundColor: "#00378B",
+        backgroundColor: env.sidebarColor,
         color: "white",
       }}
     >
@@ -153,7 +154,13 @@ const Sidebar = ({ setWallet, wallet: { wallet } }) => {
         }}
       >
         <List>
-          <ListItem>
+          <ListItem
+            sx={{
+              justifyContent: "space-around",
+              paddingTop: "25px",
+              paddingBottom: "25px",
+            }}
+          >
             <img src="./img/logo.png" alt="logo" />
           </ListItem>
           <ListItem disablePadding>
@@ -167,7 +174,7 @@ const Sidebar = ({ setWallet, wallet: { wallet } }) => {
           <ListItem disablePadding>
             <ListItemButton onClick={moveToTransactions}>
               <ListItemIcon>
-                <SaveAltIcon sx={{ color: "white" }} />
+                <SendIcon sx={{ color: "white" }} />
               </ListItemIcon>
               <ListItemText primary="Transactions" />
             </ListItemButton>
@@ -184,7 +191,7 @@ const Sidebar = ({ setWallet, wallet: { wallet } }) => {
             <ListItem disablePadding>
               <ListItemButton onClick={moveToVesting}>
                 <ListItemIcon>
-                  <DvrIcon sx={{ color: "white" }} />
+                  <TokenIcon sx={{ color: "white" }} />
                 </ListItemIcon>
                 <ListItemText primary="Vesting" />
               </ListItemButton>
@@ -194,9 +201,9 @@ const Sidebar = ({ setWallet, wallet: { wallet } }) => {
             <ListItem disablePadding>
               <ListItemButton onClick={moveToMyProjects}>
                 <ListItemIcon>
-                  <DvrIcon sx={{ color: "white" }} />
+                  <CreditScoreIcon sx={{ color: "white" }} />
                 </ListItemIcon>
-                <ListItemText primary="MyProjects" />
+                <ListItemText primary="My Projects" />
               </ListItemButton>
             </ListItem>
           ) : null}
@@ -204,9 +211,9 @@ const Sidebar = ({ setWallet, wallet: { wallet } }) => {
             <ListItem disablePadding>
               <ListItemButton onClick={moveToOwnProjects}>
                 <ListItemIcon>
-                  <DvrIcon sx={{ color: "white" }} />
+                  <FolderSharedIcon sx={{ color: "white" }} />
                 </ListItemIcon>
-                <ListItemText primary="OwnProjects" />
+                <ListItemText primary="Providing Projects" />
               </ListItemButton>
             </ListItem>
           ) : null}
@@ -220,8 +227,16 @@ const Sidebar = ({ setWallet, wallet: { wallet } }) => {
           </ListItem>
         </List>
         <Container sx={{ padding: "30px", alignItems: "center" }}>
-          <Button onClick={handleWallet} fullWidth>
-            {shortenAddress(wallet)}
+          <Button
+            sx={{
+              backgroundColor: "#1F79F3",
+              color: "white",
+              padding: "5px 12px",
+            }}
+            onClick={handleWallet}
+            fullWidth
+          >
+            {buttonText(wallet)}
           </Button>
         </Container>
         <Dialog

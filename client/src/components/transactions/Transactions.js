@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { Box, Container } from "@mui/material";
 import { ApolloClient, InMemoryCache, gql } from "@apollo/client";
-import Loading from "../utils/Loading";
+import Loading from "../common/Loading";
+import StyledTransactionsTable from "../common/StyledTransactionsTable";
+import { shortenAddress, shortenHash } from "../utils/utils";
+import env from "../utils/env";
 
 const APIURL =
   "https://api.studio.thegraph.com/query/89356/subgraph1/version/latest";
 
 const transactionsQuery = `
   query MyQuery {
-    transfers(orderBy: blockNumber, first: 10) {
+    transfers(first: 11, orderDirection: desc, orderBy: blockNumber, skip: var1) {
       transactionHash
       value
       from
@@ -19,9 +22,29 @@ const transactionsQuery = `
   }
 `;
 
+const titles = [
+  "transactionHash",
+  "blockNumber",
+  "blockTimestamp",
+  "from",
+  "to",
+  "value",
+];
+
+const titlesShown = [
+  "Transaction Hash",
+  "Block",
+  "Age",
+  "From",
+  "To",
+  "Amount",
+];
+
 const Transactions = () => {
   const [transactions, setTransactions] = useState([]);
+  const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [curPage, setCurPage] = useState(0);
 
   const getTransactions = async () => {
     const client = new ApolloClient({
@@ -31,30 +54,65 @@ const Transactions = () => {
 
     client
       .query({
-        query: gql(transactionsQuery),
+        query: gql(transactionsQuery.replace("var1", String(10 * curPage))),
       })
       .then((data) => {
-        setTransactions(data.data.transfers);
-        setIsLoading(false);
+        setData(
+          data.data.transfers.map((transaction) => {
+            return {
+              ...transaction,
+              transactionHash: shortenHash(transaction.transactionHash),
+              from: shortenAddress(transaction.from),
+              to: shortenAddress(transaction.to),
+              value: (transaction.value / 10 ** 16).toFixed(2) / 100,
+              blockTimestamp: new Date(1000 * transaction.blockTimestamp)
+                .toJSON()
+                .substring(0, 19)
+                .split("T")
+                .join(" "),
+            };
+          })
+        );
       })
       .catch((err) => {
         console.log("Error fetching data: ", err);
       });
   };
 
+  const goToPreviousPage = () => {
+    setIsLoading(true);
+    setCurPage(curPage - 1);
+  };
+
+  const goToNextPage = () => {
+    setIsLoading(true);
+    setCurPage(curPage + 1);
+  };
+
+  const refreshData = () => {
+    console.log(data.length);
+    setTransactions(data.slice(0, 10));
+  };
+
   useEffect(() => {
     getTransactions();
-    setInterval(getTransactions, 5000);
   }, []);
+
+  useEffect(() => {
+    refreshData();
+    setIsLoading(false);
+  }, [data]);
+
+  useEffect(() => {
+    getTransactions();
+  }, [curPage]);
 
   return (
     <Box
       sx={{
-        display: "inline-block",
-        position: "absolute",
         width: "calc(100% - max(12%, 200px))",
         height: "100vh",
-        backgroundColor: "#0A1223",
+        backgroundColor: env.bgColor,
         color: "white",
         overflow: "auto",
       }}
@@ -74,30 +132,16 @@ const Transactions = () => {
           {isLoading ? (
             <Loading />
           ) : (
-            transactions.map((transaction, index) => (
-              <Container
-                key={index}
-                style={{
-                  borderRadius: "20px",
-                  borderWidth: "1px",
-                  borderColor: "white",
-                  borderStyle: "solid",
-                  fontSize: "10px",
-                }}
-              >
-                <span>from : {transaction.from}</span>
-                <span>to : {transaction.to}</span>
-                <span>amount : {transaction.value}</span>
-                <div>blockNumber : {transaction.blockNumber}</div>
-                <div>transactionHash : {transaction.transactionHash}</div>
-                <div>
-                  blockTimestamp :{" "}
-                  {new Date(
-                    1000 * Number(transaction.blockTimestamp)
-                  ).toGMTString()}
-                </div>
-              </Container>
-            ))
+            <StyledTransactionsTable
+              titles={titles}
+              titlesShown={titlesShown}
+              contents={transactions}
+              curPage={curPage}
+              previousDisabled={isLoading || curPage <= 0}
+              nextDisabled={isLoading || !(data.length > 10)}
+              goToPreviousPage={goToPreviousPage}
+              goToNextPage={goToNextPage}
+            />
           )}
         </Container>
       }

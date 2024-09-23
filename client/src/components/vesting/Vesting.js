@@ -7,7 +7,6 @@ import {
   Alert,
   Box,
   Button,
-  Container,
   Dialog,
   DialogActions,
   DialogContent,
@@ -19,7 +18,8 @@ import {
 import TokenVesting from "../abi/TokenVesting.json";
 import AEV from "../abi/AEV.json";
 import VestingItem from "./VestingItem";
-import Loading from "../utils/Loading";
+import Loading from "../common/Loading";
+import env from "../utils/env";
 
 const adminAddress = "0x467b69d4b71ccf5decc44b8e6c09eb0b2e247f58";
 const AEVContractAddress = "0x0d227d43Db18361c5c67f5a217673baD86787E67";
@@ -192,45 +192,54 @@ const Vesting = ({ wallet: { wallet } }) => {
   return (
     <Box
       sx={{
-        display: "inline-block",
-        position: "absolute",
         width: "calc(100% - max(12%, 200px))",
+        backgroundColor: env.bgColor,
         height: "100vh",
-        backgroundColor: "#0A1223",
         color: "white",
+        boxSizing: "border-box",
+        padding: "100px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "10px",
         overflow: "auto",
       }}
     >
       {wallet === adminAddress ? (
-        <Button onClick={() => createVesting()}>Create Vesting</Button>
+        <Box>
+          <Button
+            sx={{
+              backgroundColor: "#1F79F3",
+              color: "white",
+              padding: "5px 12px",
+            }}
+            onClick={() => createVesting()}
+          >
+            Create Vesting
+          </Button>
+        </Box>
       ) : null}
-      {
-        <Container
+      {isLoading ? (
+        <Box
           sx={{
             height: "100%",
             display: "flex",
-            flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            gap: "30px",
-            padding: "100px",
           }}
         >
-          {isLoading ? (
-            <Loading />
-          ) : (
-            vesting.map((tokenVesting, index) => (
-              <VestingItem
-                key={index}
-                vesting={tokenVesting.tokenVesting}
-                wallet={wallet}
-                createVestingSchedule={createVestingSchedule}
-                release={release}
-              />
-            ))
-          )}
-        </Container>
-      }
+          <Loading />
+        </Box>
+      ) : (
+        vesting.map((tokenVesting, index) => (
+          <VestingItem
+            key={index}
+            vesting={tokenVesting.tokenVesting}
+            wallet={wallet}
+            createVestingSchedule={createVestingSchedule}
+            release={release}
+          />
+        ))
+      )}
       <Snackbar
         anchorOrigin={{ vertical: "top", horizontal: "right" }}
         open={isInfoAlertOpen}

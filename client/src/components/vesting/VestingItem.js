@@ -1,11 +1,48 @@
 import React, { useState, useEffect } from "react";
-import { Button, Container } from "@mui/material";
 import { Web3 } from "web3";
+import { styled } from "@mui/material/styles";
+import {
+  Box,
+  Button,
+  Table,
+  TableBody,
+  TableHead,
+  TableRow,
+} from "@mui/material";
+import TableCell, { tableCellClasses } from "@mui/material/TableCell";
 import TokenVesting from "../abi/TokenVesting.json";
 import ScheduleItem from "./ScheduleItem";
 
-const rpc = "https://sepolia.infura.io/v3/d8d9d860d0c94b7f88c73b371afee338";
+const rpc = "https://ethereum-sepolia.blockpi.network/v1/rpc/public";
 const web3 = new Web3(new Web3.providers.HttpProvider(rpc));
+
+const StyledTableCell = styled(TableCell)(({ theme }) => ({
+  [`&.${tableCellClasses.head}`]: {
+    backgroundColor: "#0E2F67",
+    color: theme.palette.common.white,
+    fontSize: 21,
+  },
+  [`&.${tableCellClasses.body}`]: {
+    color: theme.palette.common.white,
+    fontSize: 20,
+  },
+  "&:first-child": {
+    borderRadius: "30px 0px 0px 30px",
+  },
+  "&:last-child": {
+    borderRadius: "0px 30px 30px 0px",
+  },
+}));
+
+const StyledTableRow = styled(TableRow)(({ theme }) => ({
+  "&:nth-of-type(odd)": {
+    backgroundColor: theme.palette.action.hover,
+  },
+
+  "&:last-child td, &:last-child th": {
+    border: 0,
+  },
+}));
 
 const VestingItem = ({ vesting, wallet, createVestingSchedule, release }) => {
   const [name, setName] = useState("");
@@ -35,31 +72,77 @@ const VestingItem = ({ vesting, wallet, createVestingSchedule, release }) => {
   }, []);
 
   return (
-    <Container
-      style={{
-        borderRadius: "20px",
-        borderWidth: "1px",
-        borderColor: "white",
+    <Box
+      sx={{
+        backgroundColor: "#0A224F",
+        borderRadius: "30px",
+        borderColor: "#3394C4",
         borderStyle: "solid",
-        fontSize: "20px",
+        padding: "20px",
+        fontSize: 20,
+        display: "flex",
+        flexDirection: "column",
+        gap: "10px",
       }}
     >
-      <div>vesting : {vesting}</div>
-      <div>name : {name}</div>
-      {schedules.map((schedule, index) => (
-        <ScheduleItem
-          key={index}
-          vesting={vesting}
-          scheduleId={schedule}
-          wallet={wallet}
-          release={release}
-        />
-      ))}
-      <div>vestingSchedulesCount : {vestingSchedulesCount}</div>
-      <Button onClick={() => createVestingSchedule(vesting)}>
-        Create Schedule
-      </Button>
-    </Container>
+      <div>Vesting Name : {name}</div>
+      <div>Vesting Contract Address: {vesting}</div>
+      {vestingSchedulesCount ? (
+        <Box
+          sx={{
+            backgroundColor: "#0A224F",
+            borderRadius: "30px",
+            borderColor: "#3394C4",
+            borderStyle: "solid",
+            padding: "20px",
+          }}
+        >
+          <Table
+            sx={{
+              minWidth: 700,
+              color: "white",
+            }}
+            aria-label="customized table"
+          >
+            <TableHead>
+              <StyledTableRow>
+                <StyledTableCell>Schedule</StyledTableCell>
+                <StyledTableCell>Beneficiary</StyledTableCell>
+                <StyledTableCell>Start</StyledTableCell>
+                <StyledTableCell>Duration</StyledTableCell>
+                <StyledTableCell>Unit</StyledTableCell>
+                <StyledTableCell>Amount</StyledTableCell>
+                <StyledTableCell>Releasable</StyledTableCell>
+                <StyledTableCell>Release</StyledTableCell>
+              </StyledTableRow>
+            </TableHead>
+            <TableBody>
+              {schedules.map((schedule, index) => (
+                <ScheduleItem
+                  key={index}
+                  vesting={vesting}
+                  scheduleId={schedule}
+                  wallet={wallet}
+                  release={release}
+                />
+              ))}
+            </TableBody>
+          </Table>
+        </Box>
+      ) : null}
+      <Box sx={{ right: "30px" }}>
+        <Button
+          sx={{
+            backgroundColor: "#1F79F3",
+            color: "white",
+            padding: "5px 12px",
+          }}
+          onClick={() => createVestingSchedule(vesting)}
+        >
+          Create Schedule
+        </Button>
+      </Box>
+    </Box>
   );
 };
 

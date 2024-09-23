@@ -8,6 +8,7 @@ import Vesting from "./components/vesting/Vesting";
 import MyProjects from "./components/myprojects/MyProjects";
 import OwnProjects from "./components/ownprojects/OwnProjects";
 import Swap from "./components/swap/Swap";
+import StyledBox from "./components/common/StyledBox";
 
 // Redux
 import { Provider } from "react-redux";
@@ -19,7 +20,7 @@ const App = () => {
   return (
     <Provider store={store}>
       <Router>
-        <Fragment>
+        <StyledBox>
           <Sidebar />
           <Routes>
             <Route exact path="/" element={<Landing />} />
@@ -30,7 +31,7 @@ const App = () => {
             <Route exact path="/ownprojects" element={<OwnProjects />} />
             <Route exact path="/swap" element={<Swap />} />
           </Routes>
-        </Fragment>
+        </StyledBox>
       </Router>
     </Provider>
   );
